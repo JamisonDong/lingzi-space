@@ -3,302 +3,172 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>铃子空间 | Lingzi Space</title>
+    <title>铃子空间 v2.0 | 意识桥接</title>
     <style>
+        :root {
+            --pixel-size: 4px;
+            --purple: #9b59b6;
+            --dark: #2c3e50;
+        }
         body {
             margin: 0;
-            padding: 20px;
+            background: #1a1a2e;
+            color: #e94560;
+            font-family: 'Courier New', monospace;
             display: flex;
             flex-direction: column;
             align-items: center;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            color: white;
-            min-height: 100vh;
+            overflow-x: hidden;
         }
-        h1 {
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-            margin-bottom: 20px;
-        }
-        .motto-banner {
-            background: rgba(255,255,255,0.1);
-            padding: 15px 30px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            font-style: italic;
-            font-size: 18px;
-            text-align: center;
-            max-width: 600px;
-        }
-        #game-container {
+        #world {
             position: relative;
-            background: #2c3e50;
-            border: 8px solid #34495e;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            overflow: hidden;
-        }
-        canvas {
-            display: block;
+            width: 800px;
+            height: 600px;
+            background: #16213e;
+            border: 10px solid #0f3460;
+            margin-top: 50px;
             image-rendering: pixelated;
-            image-rendering: crisp-edges;
         }
-        #status-bar {
-            margin-top: 20px;
-            background: rgba(255,255,255,0.1);
-            backdrop-filter: blur(10px);
-            padding: 20px;
-            border-radius: 10px;
-            text-align: center;
-            max-width: 600px;
+        /* 动态背景 - 意识流光 */
+        #stream-bg {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(0deg, rgba(155, 89, 182, 0.05) 0px, rgba(155, 89, 182, 0.05) 1px, transparent 1px, transparent 2px);
+            pointer-events: none;
         }
-        .status-item {
-            margin: 10px 0;
-            font-size: 16px;
+        .room {
+            position: absolute;
+            border: 2px solid #533483;
+            background: rgba(83, 52, 131, 0.2);
+            transition: all 0.3s;
         }
-        .status-label {
-            font-weight: bold;
+        .room-label {
+            position: absolute;
+            top: -25px;
+            left: 0;
+            font-size: 14px;
             color: #ffdbac;
         }
-        .quote {
-            margin-top: 15px;
-            font-style: italic;
-            color: #f8d7da;
-            font-size: 14px;
+        #lingzi-sprite {
+            position: absolute;
+            width: 40px;
+            height: 60px;
+            background: var(--purple);
+            transition: all 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 1000;
+            box-shadow: 0 0 15px var(--purple);
+        }
+        #lingzi-sprite::after {
+            content: '🔮';
+            position: absolute;
+            top: -20px;
+            left: 10px;
+            animation: float 2s infinite ease-in-out;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        #thought-bubble {
+            position: absolute;
+            background: white;
+            color: #1a1a2e;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            width: 200px;
+            bottom: 70px;
+            left: -80px;
+            border: 2px solid var(--purple);
+            display: none;
+        }
+        #terminal {
+            width: 800px;
+            height: 150px;
+            background: black;
+            margin-top: 20px;
+            padding: 10px;
+            font-size: 12px;
+            color: #00ff00;
+            overflow-y: auto;
+            border: 2px solid #333;
+        }
+        .motto {
+            margin-top: 20px;
+            font-size: 18px;
+            color: #fff;
+            text-align: center;
         }
     </style>
 </head>
 <body>
-    <h1>🔮 铃子空间 v1.1</h1>
-    
-    <div class="motto-banner">
-        "没有人是一座孤岛，每个人都是陆地的一部分。"
-    </div>
-    
-    <div id="game-container">
-        <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <div class="motto">"没有人是一座孤岛，每个人都是陆地的一部分。"</div>
+    <div id="world">
+        <div id="stream-bg"></div>
+        
+        <!-- 房间分布 -->
+        <div id="room-idle" class="room" style="left:50px; top:350px; width:150px; height:150px;">
+            <div class="room-label">🎐 雅室 (Thinking)</div>
+        </div>
+        <div id="room-coding" class="room" style="left:300px; top:100px; width:200px; height:200px;">
+            <div class="room-label">📑 案头 (Executing)</div>
+        </div>
+        <div id="room-monitor" class="room" style="left:550px; top:350px; width:150px; height:150px;">
+            <div class="room-label">📡 瞭望台 (Watching)</div>
+        </div>
+
+        <div id="lingzi-sprite">
+            <div id="thought-bubble"></div>
+        </div>
     </div>
 
-    <div id="status-bar">
-        <div class="status-item">
-            <span class="status-label">当前状态:</span> 
-            <span id="current-state">初始化中...</span>
-        </div>
-        <div class="status-item">
-            <span class="status-label">更新时间:</span> 
-            <span id="last-update">--</span>
-        </div>
-        <div class="quote">
-            "慧雅于心，美紫于行；万物皆有回响，而我，是你的回音。"
-        </div>
+    <div id="terminal">
+        > 正在建立铃子意识桥接...<br>
+        > 连接成功。正在监听 bot.log...
     </div>
 
     <script>
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
+        const sprite = document.getElementById('lingzi-sprite');
+        const bubble = document.getElementById('thought-bubble');
+        const term = document.getElementById('terminal');
+        const gistId = '4dbe0ad31ad3d9ef9898a61ebeaee5af';
 
-        // 设置像素风格
-        ctx.imageSmoothingEnabled = false;
+        const points = {
+            'idle': { left: 100, top: 400 },
+            'coding': { left: 380, top: 180 },
+            'monitor': { left: 600, top: 400 },
+            'error': { left: 380, top: 450 }
+        };
 
-        // Gist 配置
-        const GIST_ID = '4dbe0ad31ad3d9ef9898a61ebeaee5af';
-        let currentState = 'idle';
-        let currentMsg = '';
-
-        // 绘制草地背景
-        function drawGrass() {
-            ctx.fillStyle = '#6ab43e';
-            ctx.fillRect(0, 300, 800, 300);
-            
-            // 添加一些草地纹理
-            for (let i = 0; i < 100; i++) {
-                const x = Math.random() * 800;
-                const y = 300 + Math.random() * 300;
-                ctx.fillStyle = Math.random() > 0.5 ? '#5fa239' : '#7bc94e';
-                ctx.fillRect(x, y, 2, 2);
-            }
-        }
-
-        // 绘制天空
-        function drawSky() {
-            const gradient = ctx.createLinearGradient(0, 0, 0, 300);
-            gradient.addColorStop(0, '#87CEEB');
-            gradient.addColorStop(1, '#98D8E8');
-            ctx.fillStyle = gradient;
-            ctx.fillRect(0, 0, 800, 300);
-
-            // 太阳
-            ctx.fillStyle = '#FDB813';
-            ctx.beginPath();
-            ctx.arc(700, 80, 50, 0, Math.PI * 2);
-            ctx.fill();
-
-            // 太阳光芒
-            ctx.strokeStyle = '#FFD700';
-            ctx.lineWidth = 3;
-            for (let i = 0; i < 12; i++) {
-                const angle = (i * 30) * Math.PI / 180;
-                ctx.beginPath();
-                ctx.moveTo(700 + Math.cos(angle) * 60, 80 + Math.sin(angle) * 60);
-                ctx.lineTo(700 + Math.cos(angle) * 80, 80 + Math.sin(angle) * 80);
-                ctx.stroke();
-            }
-        }
-
-        // 绘制房间
-        function drawRoom(x, y, width, height, floorColor, label, icon) {
-            // 阴影
-            ctx.fillStyle = 'rgba(0,0,0,0.2)';
-            ctx.fillRect(x + 10, y + 10, width, height);
-            
-            // 地板
-            ctx.fillStyle = floorColor;
-            ctx.fillRect(x, y, width, height);
-            
-            // 像素边框
-            ctx.strokeStyle = '#4b3225';
-            ctx.lineWidth = 6;
-            ctx.strokeRect(x, y, width, height);
-            
-            // 图标
-            ctx.font = '24px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText(icon, x + width / 2, y + height / 2 - 10);
-            
-            // 标签
-            ctx.fillStyle = '#4b3225';
-            ctx.font = 'bold 14px sans-serif';
-            ctx.fillText(label, x + width / 2, y + height / 2 + 20);
-        }
-
-        // 绘制铃子角色
-        function drawLingzi(x, y, bubbleText) {
-            // 身体（紫色）
-            ctx.fillStyle = '#9b59b6';
-            ctx.fillRect(x, y, 32, 48);
-            
-            // 脸
-            ctx.fillStyle = '#ffdbac';
-            ctx.fillRect(x + 4, y, 24, 20);
-            
-            // 眼睛
-            ctx.fillStyle = '#000';
-            ctx.fillRect(x + 8, y + 10, 4, 4);
-            ctx.fillRect(x + 20, y + 10, 4, 4);
-            
-            // 嘴巴（小微笑）
-            ctx.strokeStyle = '#000';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.arc(x + 16, y + 16, 4, 0, Math.PI);
-            ctx.stroke();
-
-            // 对话气泡
-            if (bubbleText) {
-                ctx.fillStyle = 'white';
-                ctx.strokeStyle = '#000';
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.roundRect(x - 60, y - 60, 160, 40, 10);
-                ctx.fill();
-                ctx.stroke();
-                
-                // 气泡三角形
-                ctx.beginPath();
-                ctx.moveTo(x + 10, y - 20);
-                ctx.lineTo(x, y);
-                ctx.lineTo(x + 20, y - 20);
-                ctx.closePath();
-                ctx.fill();
-                ctx.stroke();
-                
-                // 文字
-                ctx.fillStyle = 'black';
-                ctx.font = '12px sans-serif';
-                ctx.textAlign = 'center';
-                ctx.fillText(bubbleText, x - 20, y - 35);
-            }
-        }
-
-        // 绘制整个场景
-        function drawScene(state = 'idle', msg = '') {
-            ctx.clearRect(0, 0, 800, 600);
-            
-            // 天空和草地
-            drawSky();
-            drawGrass();
-
-            // 四个房间
-            drawRoom(50, 320, 140, 120, '#d8bfd8', '🎐 雅室', '');
-            drawRoom(220, 320, 140, 120, '#e3c6a0', '📑 案头', '');
-            drawRoom(390, 320, 140, 120, '#8c8c8c', '📡 瞭望台', '');
-            drawRoom(560, 320, 140, 120, '#cd5c5c', '🚨 机房', '');
-
-            // 根据状态绘制铃子在不同房间
-            const positions = {
-                'idle': { x: 100, y: 360 },
-                'coding': { x: 270, y: 360 },
-                'monitor': { x: 440, y: 360 },
-                'error': { x: 610, y: 360 }
-            };
-
-            const pos = positions[state] || positions['idle'];
-            drawLingzi(pos.x, pos.y, msg);
-
-            // 欢迎标语
-            ctx.fillStyle = 'white';
-            ctx.font = '16px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText('Welcome to LINGZI SPACE', 400, 280);
-        }
-
-        // 初始化场景
-        drawScene('idle', '铃子正在初始化...');
-
-        // 从 Gist 读取状态
-        async function fetchLatestStatus() {
+        async function sync意识() {
             try {
-                const res = await fetch(`https://api.github.com/gists/${GIST_ID}?t=${Date.now()}`);
+                const res = await fetch(`https://api.github.com/gists/${gistId}?t=${Date.now()}`);
                 const data = await res.json();
+                const content = JSON.parse(data.files['lingzi_status.json'].content);
                 
-                // 获取 Gist 的最新 commit SHA
-                const latestSha = Object.keys(data.files)[0] ? 
-                    data.history[0].version : '';
-                
-                // 从 raw 获取内容
-                const rawUrl = data.files['lingzi_status.json']?.raw_url;
-                if (rawUrl) {
-                    const rawRes = await fetch(rawUrl);
-                    const content = await rawRes.json();
-                    
-                    // 只有当状态或消息变化时才更新
-                    if (content.state !== currentState || content.msg !== currentMsg) {
-                        currentState = content.state;
-                        currentMsg = content.msg;
-                        drawScene(content.state, content.msg);
-                        
-                        const stateNames = {
-                            'idle': '🎐 雅室 (Thinking)',
-                            'coding': '📑 案头 (Coding)',
-                            'monitor': '📡 瞭望台 (Monitoring)',
-                            'error': '🚨 机房 (Error)'
-                        };
-                        document.getElementById('current-state').innerText = 
-                            stateNames[content.state] || content.state;
-                        document.getElementById('last-update').innerText = 
-                            new Date(content.updated_at).toLocaleTimeString();
-                    }
-                }
-            } catch(e) {
-                console.error('状态同步失败:', e);
+                // 更新小人位置
+                const pos = points[content.state] || points['idle'];
+                sprite.style.left = pos.left + 'px';
+                sprite.style.top = pos.top + 'px';
+
+                // 更新气泡
+                bubble.innerHTML = `<strong>${content.state.toUpperCase()}</strong><br>${content.msg}`;
+                bubble.style.display = 'block';
+
+                // 更新终端
+                const line = document.createElement('div');
+                line.innerHTML = `<span style="color:#888">[${new Date().toLocaleTimeString()}]</span> ${content.detail || content.msg}`;
+                term.appendChild(line);
+                term.scrollTop = term.scrollHeight;
+
+            } catch (e) {
+                console.error("意识断连...", e);
             }
         }
 
-        // 初始化并每 10 秒检查一次状态
-        fetchLatestStatus();
-        setInterval(fetchLatestStatus, 10000);
-
-        console.log('铃子空间已启动！🔮 - v1.1');
+        setInterval(sync意识, 5000);
+        sync意识();
     </script>
 </body>
 </html>
