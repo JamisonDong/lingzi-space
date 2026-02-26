@@ -69,7 +69,7 @@
     </style>
 </head>
 <body>
-    <h1>🔮 铃子空间 v1.0</h1>
+    <h1>🔮 铃子空间 v1.1</h1>
     
     <div class="motto-banner">
         "没有人是一座孤岛，每个人都是陆地的一部分。"
@@ -85,8 +85,8 @@
             <span id="current-state">初始化中...</span>
         </div>
         <div class="status-item">
-            <span class="status-label">北京天气:</span> 
-            <span id="current-weather">获取中...</span>
+            <span class="status-label">更新时间:</span> 
+            <span id="last-update">--</span>
         </div>
         <div class="quote">
             "慧雅于心，美紫于行；万物皆有回响，而我，是你的回音。"
@@ -99,6 +99,11 @@
 
         // 设置像素风格
         ctx.imageSmoothingEnabled = false;
+
+        // Gist 配置
+        const GIST_ID = '4dbe0ad31ad3d9ef9898a61ebeaee5af';
+        let currentState = 'idle';
+        let currentMsg = '';
 
         // 绘制草地背景
         function drawGrass() {
@@ -216,7 +221,7 @@
         }
 
         // 绘制整个场景
-        function drawScene(state = 'idle') {
+        function drawScene(state = 'idle', msg = '') {
             ctx.clearRect(0, 0, 800, 600);
             
             // 天空和草地
@@ -231,14 +236,14 @@
 
             // 根据状态绘制铃子在不同房间
             const positions = {
-                'idle': { x: 100, y: 360, msg: '正在整理记忆...' },
-                'coding': { x: 270, y: 360, msg: '正在部署代码！' },
-                'monitor': { x: 440, y: 360, msg: '盯盘监控中...' },
-                'error': { x: 610, y: 360, msg: '修复 bug 中...' }
+                'idle': { x: 100, y: 360 },
+                'coding': { x: 270, y: 360 },
+                'monitor': { x: 440, y: 360 },
+                'error': { x: 610, y: 360 }
             };
 
             const pos = positions[state] || positions['idle'];
-            drawLingzi(pos.x, pos.y, pos.msg);
+            drawLingzi(pos.x, pos.y, msg);
 
             // 欢迎标语
             ctx.fillStyle = 'white';
@@ -248,34 +253,52 @@
         }
 
         // 初始化场景
-        drawScene('idle');
+        drawScene('idle', '铃子正在初始化...');
 
-        // 模拟状态变化
-        let currentState = 'idle';
-        const states = ['idle', 'coding', 'monitor', 'idle'];
-        let stateIndex = 0;
+        // 从 Gist 读取状态
+        async function fetchLatestStatus() {
+            try {
+                const res = await fetch(`https://api.github.com/gists/${GIST_ID}?t=${Date.now()}`);
+                const data = await res.json();
+                
+                // 获取 Gist 的最新 commit SHA
+                const latestSha = Object.keys(data.files)[0] ? 
+                    data.history[0].version : '';
+                
+                // 从 raw 获取内容
+                const rawUrl = data.files['lingzi_status.json']?.raw_url;
+                if (rawUrl) {
+                    const rawRes = await fetch(rawUrl);
+                    const content = await rawRes.json();
+                    
+                    // 只有当状态或消息变化时才更新
+                    if (content.state !== currentState || content.msg !== currentMsg) {
+                        currentState = content.state;
+                        currentMsg = content.msg;
+                        drawScene(content.state, content.msg);
+                        
+                        const stateNames = {
+                            'idle': '🎐 雅室 (Thinking)',
+                            'coding': '📑 案头 (Coding)',
+                            'monitor': '📡 瞭望台 (Monitoring)',
+                            'error': '🚨 机房 (Error)'
+                        };
+                        document.getElementById('current-state').innerText = 
+                            stateNames[content.state] || content.state;
+                        document.getElementById('last-update').innerText = 
+                            new Date(content.updated_at).toLocaleTimeString();
+                    }
+                }
+            } catch(e) {
+                console.error('状态同步失败:', e);
+            }
+        }
 
-        // 更新状态
-        setInterval(() => {
-            stateIndex = (stateIndex + 1) % states.length;
-            currentState = states[stateIndex];
-            drawScene(currentState);
+        // 初始化并每 10 秒检查一次状态
+        fetchLatestStatus();
+        setInterval(fetchLatestStatus, 10000);
 
-            // 更新状态栏
-            const stateNames = {
-                'idle': '🎐 雅室 (Thinking)',
-                'coding': '📑 案头 (Coding)',
-                'monitor': '📡 瞭望台 (Monitoring)',
-                'error': '🚨 机房 (Error)'
-            };
-            document.getElementById('current-state').innerText = stateNames[currentState];
-
-        }, 5000);
-
-        // 设置天气
-        document.getElementById('current-weather').innerText = '晴朗 3°C (北京)';
-
-        console.log('铃子空间已启动！🔮');
+        console.log('铃子空间已启动！🔮 - v1.1');
     </script>
 </body>
 </html>
