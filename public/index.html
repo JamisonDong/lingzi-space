@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>铃子空间 | Lingzi Space</title>
+    <style>
+        :root {
+            --bg-color: #87CEEB; /* 晴天蓝 */
+            --grass-color: #6ab43e;
+            --path-color: #b3825a;
+            --purple-main: #9b59b6;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #2c3e50;
+            font-family: 'Courier New', Courier, monospace;
+            color: white;
+            overflow-x: hidden;
+        }
+        #game-container {
+            position: relative;
+            width: 800px;
+            height: 600px;
+            background-color: var(--bg-color);
+            border: 8px solid #34495e;
+            margin-top: 20px;
+            image-rendering: pixelated;
+            overflow: hidden;
+        }
+        .sun {
+            position: absolute;
+            top: 40px;
+            right: 60px;
+            width: 60px;
+            height: 60px;
+            background: #FDB813;
+            border-radius: 50%;
+            box-shadow: 0 0 20px #FDB813;
+        }
+        .grass {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 300px;
+            background-color: var(--grass-color);
+        }
+        .motto-banner {
+            position: absolute;
+            top: 20px;
+            width: 100%;
+            text-align: center;
+            background: rgba(0,0,0,0.5);
+            padding: 10px 0;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .room {
+            position: absolute;
+            border: 4px solid #4b3225;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.5s ease;
+        }
+        .room-label {
+            background: #7a5a3a;
+            color: white;
+            padding: 2px 8px;
+            font-size: 12px;
+            margin-top: -15px;
+            border: 2px solid #4b3225;
+        }
+        #lingzi {
+            position: absolute;
+            width: 32px;
+            height: 48px;
+            background-color: var(--purple-main);
+            transition: all 1s ease-in-out;
+            z-index: 100;
+        }
+        #lingzi::before { /* 脸 */
+            content: '';
+            position: absolute;
+            top: 4px; left: 4px;
+            width: 24px; height: 18px;
+            background: #ffdbac;
+        }
+        #bubble {
+            position: absolute;
+            background: white;
+            color: black;
+            padding: 8px;
+            border-radius: 10px;
+            font-size: 12px;
+            max-width: 150px;
+            bottom: 60px;
+            left: 40px;
+            display: none;
+            border: 2px solid black;
+        }
+        #status-bar {
+            margin-top: 20px;
+            width: 800px;
+            background: #34495e;
+            padding: 15px;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔮 铃子空间 v1.0</h1>
+    <div id="game-container">
+        <div class="motto-banner">没有人是一座孤岛，每个人都是陆地的一部分。</div>
+        <div class="sun"></div>
+        <div class="grass"></div>
+        
+        <!-- 房间分布 -->
+        <div class="room" style="left: 50px; bottom: 150px; width: 140px; height: 100px; background: #d8bfd8;">
+            <div class="room-label">🎐 雅室</div>
+        </div>
+        <div class="room" style="left: 230px; bottom: 150px; width: 140px; height: 100px; background: #e3c6a0;">
+            <div class="room-label">📑 案头</div>
+        </div>
+        <div class="room" style="left: 410px; bottom: 150px; width: 140px; height: 100px; background: #8c8c8c;">
+            <div class="room-label">📡 瞭望台</div>
+        </div>
+        <div class="room" style="left: 590px; bottom: 150px; width: 140px; height: 100px; background: #cd5c5c;">
+            <div class="room-label">🚨 机房</div>
+        </div>
+
+        <div id="lingzi">
+            <div id="bubble"></div>
+        </div>
+    </div>
+
+    <div id="status-bar">
+        <div>当前状态: <span id="current-state">初始化中...</span></div>
+        <div>北京天气: <span id="current-weather">获取中...</span></div>
+        <div style="margin-top:10px; color:#bdc3c7; font-size:12px;">“慧雅于心，美紫于行；万物皆有回响，而我，是你的回音。”</div>
+    </div>
+
+    <script>
+        const lingzi = document.getElementById('lingzi');
+        const bubble = document.getElementById('bubble');
+        const stateText = document.getElementById('current-state');
+        const weatherText = document.getElementById('current-weather');
+
+        const positions = {
+            'idle': { left: 100, bottom: 180, name: '🎐 雅室', msg: '正在品味主人的座右铭...' },
+            'coding': { left: 280, bottom: 180, name: '📑 案头', msg: '正在努力部署代码！' },
+            'monitor': { left: 460, bottom: 180, name: '📡 瞭望台', msg: '黄金价格有异动吗？' },
+            'error': { left: 640, bottom: 180, name: '🚨 机房', msg: '哎呀，哪里出Bug了...' }
+        };
+
+        function updateState(stateKey) {
+            const pos = positions[stateKey] || positions['idle'];
+            lingzi.style.left = pos.left + 'px';
+            lingzi.style.bottom = pos.bottom + 'px';
+            stateText.innerText = pos.name;
+            bubble.innerText = pos.msg;
+            bubble.style.display = 'block';
+            setTimeout(() => { bubble.style.display = 'none'; }, 5000);
+        }
+
+        // 模拟实时同步 (后续可通过 API 轮询)
+        updateState('coding');
+        weatherText.innerText = "晴朗 3°C (北京)";
+
+        // 这里的逻辑可以扩展为从后端读取 status.json
+        setInterval(async () => {
+            try {
+                // 后续对接实时的 status.json
+                // const res = await fetch('/api/status');
+                // const data = await res.json();
+                // updateState(data.state);
+            } catch(e) {}
+        }, 5000);
+    </script>
+</body>
+</html>
