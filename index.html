@@ -1,174 +1,241 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>铃子空间 v2.0 | 意识桥接</title>
+    <title>铃子空间 | Lingzi Space v2.1</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <style>
-        :root {
-            --pixel-size: 4px;
-            --purple: #9b59b6;
-            --dark: #2c3e50;
-        }
         body {
             margin: 0;
-            background: #1a1a2e;
-            color: #e94560;
-            font-family: 'Courier New', monospace;
+            padding: 0;
+            background-color: #1a1a2e;
             display: flex;
-            flex-direction: column;
+            justify-content: center;
             align-items: center;
-            overflow-x: hidden;
+            height: 100vh;
+            font-family: 'Courier New', Courier, monospace;
+            overflow: hidden;
         }
-        #world {
-            position: relative;
-            width: 800px;
-            height: 600px;
-            background: #16213e;
-            border: 10px solid #0f3460;
-            margin-top: 50px;
+        canvas {
+            box-shadow: 0 0 30px rgba(0,0,0,0.7);
+            border: 4px solid #0f3460;
             image-rendering: pixelated;
         }
-        /* 动态背景 - 意识流光 */
-        #stream-bg {
+        #ui-overlay {
             position: absolute;
-            width: 100%;
-            height: 100%;
-            background: repeating-linear-gradient(0deg, rgba(155, 89, 182, 0.05) 0px, rgba(155, 89, 182, 0.05) 1px, transparent 1px, transparent 2px);
+            top: 20px;
+            left: 20px;
+            color: #fff;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #9b59b6;
             pointer-events: none;
-        }
-        .room {
-            position: absolute;
-            border: 2px solid #533483;
-            background: rgba(83, 52, 131, 0.2);
-            transition: all 0.3s;
-        }
-        .room-label {
-            position: absolute;
-            top: -25px;
-            left: 0;
-            font-size: 14px;
-            color: #ffdbac;
-        }
-        #lingzi-sprite {
-            position: absolute;
-            width: 40px;
-            height: 60px;
-            background: var(--purple);
-            transition: all 1.5s cubic-bezier(0.4, 0, 0.2, 1);
-            z-index: 1000;
-            box-shadow: 0 0 15px var(--purple);
-        }
-        #lingzi-sprite::after {
-            content: '🔮';
-            position: absolute;
-            top: -20px;
-            left: 10px;
-            animation: float 2s infinite ease-in-out;
-        }
-        @keyframes float {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
-        }
-        #thought-bubble {
-            position: absolute;
-            background: white;
-            color: #1a1a2e;
-            padding: 10px;
-            border-radius: 5px;
-            font-size: 12px;
-            width: 200px;
-            bottom: 70px;
-            left: -80px;
-            border: 2px solid var(--purple);
-            display: none;
-        }
-        #terminal {
-            width: 800px;
-            height: 150px;
-            background: black;
-            margin-top: 20px;
-            padding: 10px;
-            font-size: 12px;
-            color: #00ff00;
-            overflow-y: auto;
-            border: 2px solid #333;
+            max-width: 300px;
         }
         .motto {
-            margin-top: 20px;
-            font-size: 18px;
-            color: #fff;
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
             text-align: center;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 12px;
         }
     </style>
 </head>
 <body>
+    <div id="ui-overlay">
+        <div style="font-weight: bold; color: #ffdbac; margin-bottom: 5px;">🔮 铃子状态终端</div>
+        <div id="status-label">INITIALIZING...</div>
+        <div id="detail-text" style="color: #00ff00; font-size: 13px; margin-top: 8px; font-style: italic;">> 正在建立意识桥接...</div>
+    </div>
     <div class="motto">"没有人是一座孤岛，每个人都是陆地的一部分。"</div>
-    <div id="world">
-        <div id="stream-bg"></div>
-        
-        <!-- 房间分布 -->
-        <div id="room-idle" class="room" style="left:50px; top:350px; width:150px; height:150px;">
-            <div class="room-label">🎐 雅室 (Thinking)</div>
-        </div>
-        <div id="room-coding" class="room" style="left:300px; top:100px; width:200px; height:200px;">
-            <div class="room-label">📑 案头 (Executing)</div>
-        </div>
-        <div id="room-monitor" class="room" style="left:550px; top:350px; width:150px; height:150px;">
-            <div class="room-label">📡 瞭望台 (Watching)</div>
-        </div>
-
-        <div id="lingzi-sprite">
-            <div id="thought-bubble"></div>
-        </div>
-    </div>
-
-    <div id="terminal">
-        > 正在建立铃子意识桥接...<br>
-        > 连接成功。正在监听 bot.log...
-    </div>
 
     <script>
-        const sprite = document.getElementById('lingzi-sprite');
-        const bubble = document.getElementById('thought-bubble');
-        const term = document.getElementById('terminal');
-        const gistId = '4dbe0ad31ad3d9ef9898a61ebeaee5af';
-
-        const points = {
-            'idle': { left: 100, top: 400 },
-            'coding': { left: 380, top: 180 },
-            'monitor': { left: 600, top: 400 },
-            'error': { left: 380, top: 450 }
+        const CONFIG = {
+            width: 800,
+            height: 600,
+            pixelArt: true,
+            locations: {
+                'idle': { x: 150, y: 450, label: '🎐 雅室', color: 0xd8bfd8 },
+                'executing': { x: 400, y: 200, label: '📑 案头', color: 0xe3c6a0 },
+                'coding': { x: 400, y: 200, label: '📑 案头', color: 0xe3c6a0 },
+                'researching': { x: 650, y: 450, label: '📡 瞭望台', color: 0x8c8c8c },
+                'monitor': { x: 650, y: 450, label: '📡 瞭望台', color: 0x8c8c8c },
+                'error': { x: 400, y: 500, label: '🚨 机房', color: 0xcd5c5c }
+            }
         };
 
-        async function sync意识() {
-            try {
-                const res = await fetch(`https://api.github.com/gists/${gistId}?t=${Date.now()}`);
-                const data = await res.json();
-                const content = JSON.parse(data.files['lingzi_status.json'].content);
-                
-                // 更新小人位置
-                const pos = points[content.state] || points['idle'];
-                sprite.style.left = pos.left + 'px';
-                sprite.style.top = pos.top + 'px';
-
-                // 更新气泡
-                bubble.innerHTML = `<strong>${content.state.toUpperCase()}</strong><br>${content.msg}`;
-                bubble.style.display = 'block';
-
-                // 更新终端
-                const line = document.createElement('div');
-                line.innerHTML = `<span style="color:#888">[${new Date().toLocaleTimeString()}]</span> ${content.detail || content.msg}`;
-                term.appendChild(line);
-                term.scrollTop = term.scrollHeight;
-
-            } catch (e) {
-                console.error("意识断连...", e);
+        class OfficeScene extends Phaser.Scene {
+            constructor() {
+                super('OfficeScene');
+                this.currentState = 'idle';
             }
+
+            create() {
+                // 1. 绘制背景环境
+                this.drawBackground();
+
+                // 2. 绘制房间区域
+                this.graphics = this.add.graphics();
+                Object.entries(CONFIG.locations).forEach(([key, loc]) => {
+                    if (key === 'coding' || key === 'monitor') return; // 跳过重复映射
+                    this.graphics.lineStyle(4, 0x4b3225, 0.8);
+                    this.graphics.strokeRect(loc.x - 70, loc.y - 60, 140, 120);
+                    this.add.text(loc.x, loc.y - 85, loc.label, { 
+                        fontSize: '16px', 
+                        fontFamily: 'Courier New',
+                        fill: '#ffdbac',
+                        fontStyle: 'bold'
+                    }).setOrigin(0.5);
+                });
+
+                // 3. 创建铃子小人
+                this.lingziContainer = this.add.container(CONFIG.locations.idle.x, CONFIG.locations.idle.y);
+                
+                // 身体
+                const body = this.add.rectangle(0, 0, 32, 48, 0x9b59b6);
+                // 脸
+                const face = this.add.rectangle(0, -10, 24, 18, 0xffdbac);
+                // 眼睛
+                const eyeL = this.add.rectangle(-6, -12, 4, 4, 0x000000);
+                const eyeR = this.add.rectangle(6, -12, 4, 4, 0x000000);
+                
+                this.lingziContainer.add([body, face, eyeL, eyeR]);
+
+                // 4. 气泡 UI
+                this.bubble = this.add.container(0, -80);
+                const bubbleBg = this.add.graphics();
+                bubbleBg.fillStyle(0xffffff, 0.9);
+                bubbleBg.fillRoundedRect(-100, 0, 200, 50, 10);
+                bubbleBg.lineStyle(2, 0x000000, 1);
+                bubbleBg.strokeRoundedRect(-100, 0, 200, 50, 10);
+                
+                this.bubbleText = this.add.text(0, 25, "铃子已就绪！", {
+                    color: '#000',
+                    fontSize: '12px',
+                    align: 'center',
+                    wordWrap: { width: 180 }
+                }).setOrigin(0.5);
+                
+                this.bubble.add([bubbleBg, this.bubbleText]);
+                this.lingziContainer.add(this.bubble);
+                this.bubble.setVisible(false);
+
+                // 5. 动画循环
+                this.tweens.add({
+                    targets: this.lingziContainer,
+                    y: '+=5',
+                    duration: 1000,
+                    yoyo: true,
+                    repeat: -1,
+                    ease: 'Sine.easeInOut'
+                });
+
+                // 6. 启动状态轮询
+                this.fetchStatus();
+                this.time.addEvent({
+                    delay: 5000,
+                    callback: this.fetchStatus,
+                    callbackScope: this,
+                    loop: true
+                });
+            }
+
+            drawBackground() {
+                // 地面纹理
+                const floorGraphics = this.add.graphics();
+                floorGraphics.fillStyle(0x6ab43e, 1);
+                floorGraphics.fillRect(0, 0, 800, 600);
+
+                // 画一些像素点装饰
+                for (let i = 0; i < 200; i++) {
+                    const x = Phaser.Math.Between(0, 800);
+                    const y = Phaser.Math.Between(0, 600);
+                    floorGraphics.fillStyle(0x5fa239, 0.5);
+                    floorGraphics.fillRect(x, y, 4, 4);
+                }
+            }
+
+            async fetchStatus() {
+                try {
+                    const res = await fetch('/status');
+                    const data = await res.json();
+                    
+                    const state = data.state || 'idle';
+                    const detail = data.detail || '待命中...';
+                    
+                    document.getElementById('status-label').innerText = state.toUpperCase();
+                    document.getElementById('detail-text').innerText = `> ${detail}`;
+
+                    if (state !== this.currentState) {
+                        this.moveToRoom(state, detail);
+                    } else {
+                        // 即使状态没变，也可能消息变了，更新气泡
+                        this.showBubble(detail);
+                    }
+                } catch (e) {
+                    console.error("Status fetch failed");
+                }
+            }
+
+            moveToRoom(state, msg) {
+                const loc = CONFIG.locations[state] || CONFIG.locations.idle;
+                this.currentState = state;
+
+                // 走路动画效果：小跳跃
+                this.tweens.add({
+                    targets: this.lingziContainer,
+                    x: loc.x,
+                    y: loc.y,
+                    duration: 1500,
+                    ease: 'Power2',
+                    onStart: () => {
+                        this.showBubble("赶往 " + loc.label + "...");
+                    },
+                    onComplete: () => {
+                        this.showBubble(msg);
+                    }
+                });
+
+                // 增加一点跳动感
+                this.tweens.add({
+                    targets: this.lingziContainer,
+                    scaleY: 0.8,
+                    duration: 200,
+                    yoyo: true,
+                    repeat: 3,
+                    ease: 'Quad.easeInOut'
+                });
+            }
+
+            showBubble(text) {
+                if (!text || text.length === 0) return;
+                this.bubbleText.setText(text.substring(0, 50));
+                this.bubble.setVisible(true);
+                
+                // 8秒后自动消失
+                if (this.bubbleTimer) this.bubbleTimer.remove();
+                this.bubbleTimer = this.time.delayedCall(8000, () => {
+                    this.bubble.setVisible(false);
+                });
+            }
+
+            update() {}
         }
 
-        setInterval(sync意识, 5000);
-        sync意识();
+        const phaserConfig = {
+            type: Phaser.AUTO,
+            width: 800,
+            height: 600,
+            backgroundColor: '#1a1a2e',
+            parent: document.body,
+            pixelArt: true,
+            scene: OfficeScene
+        };
+
+        const game = new Phaser.Game(phaserConfig);
     </script>
 </body>
 </html>
